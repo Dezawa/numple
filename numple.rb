@@ -15,23 +15,28 @@ class Numple
     @option = option
   end
 
+  # パズルを解き、出力用にGameを保持する。
   def resolve
     game = create_game
     game.resolve
   end
 
+  # 解答済み、または途中まで解いた9x9盤面を返す。
   def output_form
     game.output_form
   end
 
+  # 未確定セルに残っている候補を返す。
   def cell_out
     game.cell_out
   end
 
+  # 解法ごとの使用回数を返す。
   def output_statistics
     game.output_statistics
   end
 
+  # 入力を読み、SudokuのGameを作成する。
   def create_game
     @game = Number::Game.create(infile, option: option)
   end

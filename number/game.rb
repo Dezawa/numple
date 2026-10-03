@@ -22,6 +22,7 @@ module Number
     attr_reader :infile, :count, :call_count
 
     def self.create(infile, option: {})
+      # -9指定時は、サイズ宣言なしで81セルのデータを読む。
       unless option[:nine]
         header = read_board_header(infile)
         unless header.match?(/\A\s*(?:9|STD)\s*\z/i)
@@ -53,14 +54,17 @@ module Number
     end
 
     def output_form
+      # 未確定セルはピリオドで表示する。
       form.out cells
     end
 
+    # 解法ごとに盤面を変更した回数。
     def output_statistics
       @count.map { |label, value| format(" Stat: %<l>-10s %<v>3d\n", l: label, v: value) }.join
     end
 
     def cell_ability
+      # 未確定セルと、そこに残っている候補数字。
       cells.select { |cell| cell.v.nil? }.map { |cell| [cell.c, cell.ability] }
     end
 
