@@ -1,55 +1,28 @@
 # frozen_string_literal: true
 
 module Number
-  # mail class
   module GameInitiate
-    def set_game_type
-      required = Number::Game::IROMONO_REG =~ game_type ? "./game_types/#{::Regexp.last_match(0).downcase}" : nil
-      return unless required
-
-      require_relative required
-      extend Number::GameTypes::GameType
-    end
-
-    # data file の残りを読んで、初期値を得る
-    #    dataファイルにある、arrow情報も読む
+    # Read the 81 givens, accepting compact rows or whitespace-separated cells.
     def data_initialize
-      c = 0
-
-      # 所定の cell数だけ、初期データを読む
-      while c < @size && (line = gets_skip_comment(infile))
-        line.chop.split(sep).each do |v|
-          next if /\s/ =~ v
-
-          @cells[c].assign_valu(v)
-          c += 1
-        end
+      values = []
+      while values.size < @size && (line = gets_skip_comment(infile))
+        fields = line.split
+        values.concat(fields.flat_map { |field| field.each_char.to_a })
       end
+      raise ArgumentError, "expected 81 cell values, got #{values.size}" unless values.size == @size
 
-      # dataファイルの後半にある arrow情報を得る
-      # 標準では何もしないmethod
-      optional_struct(sep, game_scale, infile)
-      # @arrows = @arrows.compact if @arrows
-    end
-
-    def get_arrow(infile)
-      puts 'GET ARROW' if option[:verb]
-      @arrows = []
-
-      while (line = gets_skip_comment(infile))
-        @arrows << line.split.map { |c| c.to_i - 1 }
-        puts "arrow #{line}" if option[:verb]
-      end
-      @arrows = @arrows.compact if @arrows
+      values.each_with_index { |value, index| @cells[index].assign_valu(value) }
     end
 
     def structure
-      make_waku_pform(form_type)
-      # if struct_reg =~ form_type # 3x3-4+5
-      ban_initialize(@waku, game_scale, @waku.xmax, @waku.ymax)
-      # 印刷フォーム設定
-      # end
-      @form = Number::Form.new([@waku, @waku.xmax, @waku.ymax], game_scale)
+      initialize_board
+      @form = Number::Form.new
+    end
+
+    def gets_skip_comment(input)
+      line = input.gets
+      line = input.gets while line && (line.match?(/^\s*#/) || line.match?(/^\s*$/))
+      line
     end
   end
 end

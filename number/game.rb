@@ -1,36 +1,35 @@
 # frozen_string_literal: true
 
-require_relative './game_initiate'
-require_relative './waku'
 require_relative './form'
-require_relative './box'
-require_relative './make_waku_pform'
 require_relative './cell'
 require_relative './group'
 require_relative './group_ability'
+require_relative './game_board'
+require_relative './game_initiate'
 require_relative './resolver'
 
 module Number
-  # mail class
   class Game
-    IROMONO = %w[ARROW KIKA SUM XROSS COLLOR HUTOUGOU DIFF NEIGHBER CUPCELL].freeze
-    IROMONO_REG = /#{IROMONO.join('|')}/.freeze
-    include Number::GamePform
+    SIZE = 9
+    CELL_COUNT = SIZE * SIZE
+    GROUP_COUNT = SIZE * 3
+
+    include Number::GameBoard
     include Number::Resolver
     include Number::GameInitiate
-    attr_accessor :groups, :cells, :gsize, :size, :form_type, :form, :arrows, :n, :game_scale, :option, :waku
-    attr_reader :infile, :sep, :game_type, :count, :call_count
+
+    attr_accessor :groups, :cells, :gsize, :size, :form, :option
+    attr_reader :infile, :count, :call_count
 
     def self.create(infile, option: {})
-      form_type, game_type = if option[:nine]
-                               ['9', nil]
-                             else
-                               form_and_game_type(infile)
-                             end
-      instance = new(infile, form_type, game_type: game_type, option: option)
-      instance.set_game_type
-      # @waku、formを作成。groupを作成し、optional_groupも作成
-      # ban_initializeにてcell作成
+      unless option[:nine]
+        header = read_board_header(infile)
+        unless header.match?(/\A\s*(?:9|STD)\s*\z/i)
+          raise ArgumentError, "only standard 9x9 Sudoku is supported (got #{header.strip.inspect})"
+        end
+      end
+
+      instance = new(infile, option: option)
       instance.structure
       instance.gout if option[:gout]
       instance.data_initialize
@@ -38,33 +37,14 @@ module Number
       instance
     end
 
-    def self.form_and_game_type(infile)
-      line = gets_skip_comment(infile)
-      game_type = (match = line.match(Number::Game::IROMONO_REG)) ? match[0] : nil
-      form_type = line.match(/(\d[-+x\d]*\d?)|STD/)[0]
-      form_type = '9' if form_type == 'STD'
-      [form_type, game_type]
-    end
-
-    def self.gets_skip_comment(infile)
+    def self.read_board_header(infile)
       line = infile.gets
-      line = infile.gets while line =~ /^\s*#/ || line =~ /^\s*$/
-      line
+      line = infile.gets while line && (line.match?(/^\s*#/) || line.match?(/^\s*$/))
+      line || ''
     end
 
-    def gets_skip_comment(infile)
-      line = infile.gets
-      line = infile.gets while line =~ /^\s*#/ || line =~ /^\s*$/
-      line
-    end
-
-    def optional_test; end
-
-    def initialize(infile = nil, arg_form_type = '9', game_type: nil, option: {})
+    def initialize(infile = nil, option: {})
       @infile = infile
-      @form_type = arg_form_type
-      @sep = arg_form_type.to_i < 10 ? '' : /\s+/
-      @game_type = game_type
       @option = option
       @groups = []
       @cells = []
@@ -72,47 +52,25 @@ module Number
       @call_count = Hash.new(0)
     end
 
-    def game
-      'NOMAL'
-    end
-
-    def high_class
-      [[:cross_teiin], [:curb]]
-    end
-
-    def optional_struct(sep, game_scale, infile); end
-
-    def struct_reg
-      /^\s*\d+(x\d+|(x\d)?([-+]\d+)+)\s*$/
-    end
-
-    ### 出力系 ###
-    # 版の出力。決まっていない所は . ピリオド
     def output_form
       form.out cells
     end
 
-    # 使った技の統計
     def output_statistics
-      @count.map { |l, v| format(" Stat: %<l>-10s %<v>3d\n", l: l, v: v) }.join
+      @count.map { |label, value| format(" Stat: %<l>-10s %<v>3d\n", l: label, v: value) }.join
     end
 
-    # 未解決の cellがある場合、その残っている可能性をまとめる
-    # [ [cell_nr, [ 1, 5,,,] ]
     def cell_ability
-      cells.select { |cell| cell.v.nil? }
-           .map { |cell| [cell.c, cell.ability] }
+      cells.select { |cell| cell.v.nil? }.map { |cell| [cell.c, cell.ability] }
     end
 
-    # 未解決の cellがある場合、その残っている可能性を出力する。後方互換
-    # 2 : [ 3, 4]
     def cell_out
-      cell_ability.map { |c, ability| "#{c} : #{ability}" }.join("\n")
+      cell_ability.map { |cell_id, ability| "#{cell_id} : #{ability}" }.join("\n")
     end
 
     def output(statistics, _count, cellout)
-      cellout && cell_out
-      statistics && @count.each { |l, v| printf " Stat: %<l>-10s %<v>3d\n", l: l, v: v }
+      cell_out if cellout
+      statistics && @count.each { |label, value| printf " Stat: %<l>-10s %<v>3d\n", l: label, v: value }
       form.out cells
     end
   end

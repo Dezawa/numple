@@ -1,18 +1,16 @@
 # frozen_string_literal: true
 
 module Number
-  # 行、列、ブロックを総称
+  # A row, column, or 3x3 box.
   class Group
-    attr_accessor :game, :n, :game_scale, :g, :ability, :cell_ids, :atrivute, :count
+    attr_accessor :game, :g, :ability, :cell_ids, :atrivute, :count
 
     def initialize(arg_game, arg_gnr, count, atr = [])
       @game = arg_game
-      game_scale = @game.game_scale
       @g = arg_gnr
-      # @cells = @game.cells
-      @ability = Number::GroupAbilities.new(game_scale)
+      @ability = Number::GroupAbilities.new
       @cell_ids = []
-      @atrivute = atr # :holizontal :vertical  :block
+      @atrivute = atr
       @count = count
     end
 
@@ -42,7 +40,6 @@ module Number
       cell_ids & pair_grp.cell_ids
     end
 
-    # 数字残り可能性数 が v_num以下のcell
     def cell_ids_avility_le_than(v_num)
       cell_ids.select { |c_no| (1..v_num).include?(game.cells[c_no].valurest) }
     end
@@ -52,7 +49,6 @@ module Number
     end
 
     def addcell_ids(cell_id)
-      # puts "group:#{g}, add cell #{cell_id}   "
       @cell_ids << cell_id
     end
 
@@ -69,32 +65,25 @@ module Number
     end
 
     def set_cell_if_some_value_s_ability_is_rest_one
-      sw = nil
       cells = []
-      ability.fixed_by_rest_one.each do |group_ability|
-        # next unless group_ability.cell_ids.first
+      @ability.fixed_by_rest_one.each do |group_ability|
         next unless @game.cells[group_ability.cell_ids.first]
-                         .set(group_ability.v,
-                              "grp(#{g}).ability #{group_ability.cell_ids}")
+        next unless @game.cells[group_ability.cell_ids.first].set(
+          group_ability.v, "grp(#{g}).ability #{group_ability.cell_ids}"
+        )
 
         game.count[:Group_ability_is_rest_one] += 1
-        game.count["rest_one"] += 1
+        game.count['rest_one'] += 1
         cells += group_ability.cell_ids
-        sw = true
       end
       cells
     end
 
-    # このgroupの値 v
     def rm_ability(rm_value, except_cells = [], msg = '')
-      # このgrpに属する各cellの値vの可能性を調べ、残っていたら
-      # 可能性を削除する
-      # ただし、array except_cells  にある cell はいじらない。
-      # vが配列の場合は、その中をすべて
       rm_value = [rm_value].flatten
       rm_cells = @cell_ids - except_cells
       ret = nil
-      rm_cells.each do |c0| # (0..game_scale-1).each{|c| c0=@cell_ids[c]
+      rm_cells.each do |c0|
         if (@game.cells[c0].ability & rm_value).size.positive?
           @game.cells[c0].rm_ability(rm_value, msg)
           ret = true
@@ -104,4 +93,3 @@ module Number
     end
   end
 end
-####

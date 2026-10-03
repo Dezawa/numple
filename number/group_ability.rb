@@ -1,22 +1,21 @@
 # frozen_string_literal: true
 
 module Number
-  # Groupに残された可能性
+  # Candidate locations for each digit in one standard Sudoku group.
   class GroupAbilities
-    attr_accessor :game_scale, :ability
+    SIZE = 9
 
-    def initialize(game_scale)
-      @game_scale = game_scale
-      @ability = [] # Hash.new #{|h,k| h[k] = [game_scale,[],k] }
+    attr_accessor :ability
+
+    def initialize
+      @ability = []
     end
 
     def setup_initial(cell_ids)
-      (1..game_scale).each { |v| @ability[v] = Number::GroupAbility.new(game_scale, cell_ids.dup, v) }
-      # @ability[0]= GroupAbility.new(0,cell_ids.dup,0)
+      (1..SIZE).each { |v| @ability[v] = Number::GroupAbility.new(cell_ids.dup, v) }
     end
 
     def rm_cell_ability(values, cell_no, _msg = nil)
-      # このgrpの値 v　から指定cellの可能性をなくす
       values.each { |v| @ability[v].rm_cell_ability(cell_no) }
     end
 
@@ -24,13 +23,10 @@ module Number
       @ability[1..].select { |abl| abl.rest == 1 }
     end
 
-    # v_num個の同じ「可能性数字」を持つv_num個のcellの組み合わせを返す
-    # [[[2,[28,29],7], [2,[28,29],9]]] <= cell 28,29 には数字7,9のみが入る
-    #   [可能性残り数、[cell_id,,,], 値]
     def combination_of_ability_of_rest_is_less_or_equal(v_num)
-      @ability[1..].select { |abl| abl.rest <= v_num and abl.rest > 1 }
-                   .combination(v_num)
-                   .select { |abl_cmb| abl_cmb.inject([]) { |cells, abl| cells | abl.cell_ids }.size == v_num }
+      @ability[1..].select { |abl| abl.rest <= v_num && abl.rest > 1 }
+              .combination(v_num)
+              .select { |abl_cmb| abl_cmb.inject([]) { |cells, abl| cells | abl.cell_ids }.size == v_num }
     end
 
     def [](idx)
@@ -51,19 +47,13 @@ module Number
       ablty
     end
   end
-end
 
-module Number
-  # Groupに残された可能性
-  # Group毎に game_scale個作成される。数字ｖ毎に一つ。
   class GroupAbility
-    # rest :: 数字v が入る可能性が残っている cell の数。初めはgame_scale。
-    # cell_ids :: このgroupに属する cell の nrの一覧
     attr_accessor :rest, :cell_ids, :v
 
-    def initialize(game_scale, arg_cell_ids, arg_v)
+    def initialize(arg_cell_ids, arg_v)
       @cell_ids = arg_cell_ids
-      @rest = game_scale
+      @rest = arg_cell_ids.size
       @v = arg_v
     end
 

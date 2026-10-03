@@ -1,102 +1,50 @@
 # frozen_string_literal: true
 
 require_relative '../number/game'
-require_relative '../number/box'
-require_relative '../number/cell'
-require_relative '../number/form'
-require_relative '../number/group'
-require_relative '../number/group_ability'
-require_relative '../number/game_types'
+require 'stringio'
 
-FORM_TYPES =
-  [['# と 9あり', "#\n9\n111\n", ['9', nil]],
-   ['# と 9 ARROWあり', "#\n9 ARROW\n111\n", %w[9 ARROW]],
-   ['# と 9 NOMATCHあり', "#\n9 NOMATCH\n111\n", ['9', nil]],
-   ['# なしで 9あり', "9\n111\n", ['9', nil]],
-   ['# なしで 9 ARROWあり', "9 ARROW\n111\n", %w[9 ARROW]],
-   ['9 ARROW の間に空白なし', "9ARROW\n111\n", %w[9 ARROW]],
-   ['頭に空行', "  \n9 ARROW\n111\n", %w[9 ARROW]],
-   ['頭にコメント行', "#  \n9 ARROW\n111\n", %w[9 ARROW]],
-   ['重層形式', "9-3+2-3 ARROW\n111\n", ['9-3+2-3', 'ARROW']]].freeze
+RSpec.describe Number::Game do
+  let(:puzzle) { "123......\n" + (".........\n" * 8) }
 
-# rubocop:disable Metrics/BlockLength
-RSpec.describe Number::Game, type: :model do
-  let(:data) do
-    String.new("#\n9\n123......\n#{".........\n" * 8}")
-  end
-  let(:infile) { StringIO.new(data, 'r+') }
-  context :new do
-    let(:game) { Number::Game.create(infile) }
+  describe '.create' do
+    it 'builds 81 cells and 27 standard groups from a 9 header' do
+      game = described_class.create(StringIO.new("# puzzle\n9\n#{puzzle}"))
 
-    it 'groupは27' do
-      expect(game.groups.size).to eq 3 * 9
-    end
-    it 'cellは81' do
-      expect(game.cells.size).to eq 9 * 9
-    end
-    it 'cellの値は1,2,3とnil' do
+      expect(game.cells.size).to eq 81
+      expect(game.groups.size).to eq 27
       expect(game.cells.map(&:v)).to eq [1, 2, 3] + [nil] * 78
+      expect(game.cells[0].group_ids).to eq [0, 9, 18]
+      expect(game.cells[3].group_ids).to eq [0, 12, 19]
+      expect(game.cells[3].ability).to eq [4, 5, 6, 7, 8, 9]
     end
 
-    context 'cell[0]は' do
-      it 'group 0,9,18 に属する' do
-        expect(game.cells[0].group_ids).to eq [0, 9, 18]
-      end
-      it 'abirityは[]' do
-        expect(game.cells[0].ability).to eq []
-      end
+    it 'accepts a standard Sudoku declaration' do
+      expect { described_class.create(StringIO.new("STD\n#{puzzle}")) }.not_to raise_error
     end
-    context 'cell[3]は' do
-      it 'group 0,12,18 に属する' do
-        expect(game.cells[3].group_ids).to eq [0, 12, 19]
-      end
-      it 'abirityは123以外' do
-        expect(game.cells[3].ability).to eq [4, 5, 6, 7, 8, 9]
-      end
+
+    it 'requires -9 mode for headerless puzzle data' do
+      game = described_class.create(StringIO.new(puzzle), option: { nine: true })
+      expect(game.cells.first.v).to eq 1
+    end
+
+    it 'rejects nonstandard board declarations' do
+      expect { described_class.create(StringIO.new("6x6\n#{puzzle}")) }
+        .to raise_error(ArgumentError, /only standard 9x9 Sudoku/)
+      expect { described_class.create(StringIO.new("9 ARROW\n#{puzzle}")) }
+        .to raise_error(ArgumentError, /only standard 9x9 Sudoku/)
     end
   end
 
-  describe '色物拡張' do
-    Number::Game::IROMONO.each do |game_type|
-      it "#{game_type}がextendされる" do
-        game = Number::Game.new(infile, '9', game_type: game_type)
-        game.set_game_type
-        expect(game.game).to eq game_type
-      end
-    end
+  it 'solves the existing standard 9x9 sample to the same answer' do
+    game = described_class.create(File.open('./sample/np101001'), option: { nine: true })
+    game.resolve
+    expected = '876159423321487965945326187452978631638241759719635842594762318183594276267813594'
+    expect(game.cells.map(&:v).join).to eq expected
   end
 
-  let(:sult) do
-    "876159423
-321487965
-945326187
-452978631
-638241759
-719635842
-594762318
-183594276
-267813594".gsub(/\s/, '').split('').map(&:to_i)
-  end
-  describe '解' do
-    let(:game) { Number::Game.create(infile) }
-    let(:infile) { open('./sample/np101001') }
-
-    it '解は' do
-      game.resolve
-      expect(game.cells.map(&:v)).to eq sult
-    end
-  end
-
-  describe 'self.form_and_game_type' do
-    let(:infile) { StringIO.new(data) }
-    FORM_TYPES.each do |comment, line, result|
-      context comment do
-        let(:data) { line }
-        it "#{result} が帰る" do
-          expect(Number::Game.form_and_game_type(infile)).to eq result
-        end
-      end
-    end
+  it 'formats an 81-cell board as nine rows' do
+    game = described_class.create(StringIO.new("9\n#{puzzle}"))
+    expect(game.output_form.lines.size).to eq 9
+    expect(game.output_form.lines.first.chomp).to eq '123...... '
   end
 end
-# rubocop:enable Metrics/BlockLength

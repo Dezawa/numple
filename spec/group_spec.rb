@@ -1,15 +1,12 @@
 # frozen_string_literal: true
 
 require_relative '../number/game'
-# require_relative '../number/box'
 require_relative '../number/cell'
-# require_relative '../number/form'
 require_relative '../number/group'
 require_relative '../number/group_ability'
-# require_relative '../number/game_types'
 
 RSpec.describe Number::Group, type: :model do
-  let(:game) { Number::Game.new(nil, '9') }
+  let(:game) { Number::Game.new }
   let(:group) { Number::Group.new(game, 9, []) }
 
   describe :group do
@@ -57,7 +54,7 @@ __END__
   let(:combinations) do
       combos = abilities_for_reserv.map.with_index(1) do |ability, value|
         group_aiblilities.ability[value] =
-          Number::GroupAbility.new(ability.size, ability, value)
+          Number::GroupAbility.new(ability, value)
       end
   end
 

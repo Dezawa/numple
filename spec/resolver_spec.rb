@@ -1,22 +1,19 @@
 # frozen_string_literal: true
 
 require_relative '../number/game'
-# require_relative '../number/box'
 require_relative '../number/cell'
-# require_relative '../number/form'
 require_relative '../number/group'
 require_relative '../number/group_ability'
-# require_relative '../number/game_types'
 
 # rubocop: disable Metrics/BlockLength
 RSpec.describe Number::Game, type: :model do
-  let(:game) { Number::Game.new(nil, '9') }
+  let(:game) { Number::Game.new }
   let(:group) do
     grp = Number::Group.new(game, 9, [])
     grp.cell_ids = (10..18).to_a
     grp
   end
-  let(:group_aiblilities) { Number::GroupAbilities.new(9) }
+  let(:group_aiblilities) { Number::GroupAbilities.new }
 
   describe :prison do
     let(:cell_abilities_for_prison) do
@@ -59,7 +56,6 @@ RSpec.describe Number::Game, type: :model do
   let(:cell_abilities) do
     cell_ability = Hash.new { |h, k| h[k] = [] }
     abilities_for_reserv.map.with_index(1) do |cells, val|
-      pp [cells, val]
       cells.each { |cell| cell_ability[cell] << val }
     end
     cell_ability
@@ -77,7 +73,7 @@ RSpec.describe Number::Game, type: :model do
   let(:ary_groupability) do
     abilities_for_reserv.map.with_index(1) do |ability, value|
       group_aiblilities.ability[value] =
-        Number::GroupAbility.new(ability.size, ability, value)
+        Number::GroupAbility.new(ability, value)
     end
   end
 
@@ -89,7 +85,7 @@ RSpec.describe Number::Game, type: :model do
     context :candidate_reserved_set do
       before do
         game.cells = cells
-        group.ability = Number::GroupAbilities.new(9)
+        group.ability = Number::GroupAbilities.new
         group.ability.ability = ary_groupability
         allow(group.ability)
           .to receive(:combination_of_ability_of_rest_is_less_or_equal)

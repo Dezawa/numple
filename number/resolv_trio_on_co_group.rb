@@ -8,7 +8,7 @@ module Number
       # return # prison(2,3)と等価?
       ret = ''
       @groups.each do |grp|
-        (1..game_scale).each do |v|
+        (1..Number::Game::SIZE).each do |v|
           cnt = grp.ability[v].rest
           next unless cnt > 1 && cnt < 4 ## -> 1.
 

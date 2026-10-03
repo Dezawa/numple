@@ -1,15 +1,9 @@
 # frozen_string_literal: true
 
-# require_relative '../number/game'
-# require_relative '../number/box'
-# require_relative '../number/cell'
-# require_relative '../number/form'
-# require_relative '../number/group'
 require_relative '../number/group_ability'
-# require_relative '../number/game_types'
 
 RSpec.describe Number::GroupAbilities, type: :model do
-  let(:group_aiblilities) { Number::GroupAbilities.new(9) }
+  let(:group_aiblilities) { Number::GroupAbilities.new }
   let(:abilities) do
     # cell 10,11,12には1,2,3が有る。cell 13,14 には4,5が有る。
     # これらの数字は他のcellにはない
@@ -22,7 +16,7 @@ RSpec.describe Number::GroupAbilities, type: :model do
     before do
       abilities.each.with_index(1) do |ability, value|
         group_aiblilities.ability[value] =
-          Number::GroupAbility.new(ability.size, ability, value)
+          Number::GroupAbility.new(ability, value)
       end
     end
     it '2個以下のcombintion。数字4,5がcell13,14にある' do

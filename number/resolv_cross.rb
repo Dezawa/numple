@@ -14,16 +14,16 @@ module Number
     # .........
     # .........
     #
-    # (1) :holizontal なgroupについて、値v　をとり得るcellの数が2,,@m であるグループを集める grps1
+    # (1) :holizontal なgroupについて、値vをとり得るcellの数が2または3のグループを集める
     #      grps1 = [ count, group ,[cells], [co_groups] ]  count <- cell数、co_?groups <- (2)
     # (2) そのcellを共有する:verticalなgroupを集める。[co_groups]
-    # (3) それぞれの grps1から g_nums(2..@m)個づつの組み合わせをつくり cmb_grp
+    # (3) それぞれのgrps1から2個または3個の組み合わせを作る
     # (4) co_groups のuniq がg_numsに等しい組み合わせを残す
     # 　　　複数のBOXな場合要吟味。重なる:block上に対象となるcellがあるという特殊な場合以外は行けるかも
     #
     # (5) このco_groupsから値vの可能性を削除する。except cells
     #
-    # これを g_nums 2,,@m について繰り返し、:holizontal と :vertical を入れ替えて行う
+    # これを2個と3個について、:holizontal と :vertical を入れ替えて行う
     def cross_teiin
       ret = ''
       h_v_table = %i[holizontal vertical]
@@ -32,14 +32,14 @@ module Number
         @call_count['cross_teiin'] += 1 # holizontal vertical 各々１回
         v_h = h_v_table[1 - idx] # 　holizontal と :vertical について
         # value
-        (1..game_scale).each do |v| # (1) 値v　をとり得る
+        (1..Number::Game::SIZE).each do |v| # (1) 値v　をとり得る
           vsw = false
           grps1 = groups_remain_2_or_m_cells_of_value_is(h_v, v_h, v)
           #  [count , grp,  cells, co_groups]
 
           # (3) それぞれの cell grps1[2,g_nums]から g_numsつづつの組み合わせをつくり cmb_grp
           # g_nums
-          (2..@m).each do |g_nums|
+          (2..3).each do |g_nums|
             # combination
             grps1.select { |grp| grp[0] <= g_nums }
                  .combination(g_nums).each do |cmb_grp|
@@ -59,39 +59,8 @@ module Number
           # return true
         end
       end
-      # これを g_nums 2,,@m について繰り返し、:holizontal と :vertical を入れ替えて行う
-      #
       option[:cross] = nil
       ret # false
-
-      # msg = ''
-      # (1..game_scale).each do |v| # (1) 値v　をとり得る
-      #   vsw = false
-      #   grps1 = groups_remain_2_or_m_cells_of_value_is(:holizontal, :vertical, v)
-      #   #  [count , grp,  cells, co_groups]
-
-      #   # (3) それぞれの cell grps1[2,g_nums]から g_numsつづつの組み合わせをつくり cmb_grp
-      #   # g_nums
-      #   (2..@m).each do |g_nums|
-      #     # combination
-      #     grps1.select { |count, _grp, _cells, _co_groups| count <= g_nums }
-      #          .combination(g_nums).each do |cmb_grp|
-      #       # (4) co_groups のuniq がg_numsに等しい組み合わせを残す
-      #       # (5) このco_groupsから値vの可能性を削除する。except cells
-      #       vsw = select_cmb_grp_and_rm(cmb_grp, g_nums, v)
-      #   if vsw
-      #     @count['X wing'] += 1
-      #     msg = "grp #{g_nums}, val #{v}"
-      #   end
-      #     end
-      #   end
-      #   # return true
-      # end
-      # # end
-      # # これを g_nums 2,,@m について繰り返し、:holizontal と :vertical を入れ替えて行う
-      # #
-      # option[:cross] = nil
-      # msg # false
     end
 
     def select_cmb_grp_and_rm(cmb_grp, g_nums, rm_v)
@@ -129,8 +98,8 @@ module Number
     def groups_remain_2_or_m_cells(h_v, valu)
       @groups.select do |grp|
         count = grp.ability[valu].rest
-        (grp.type == h_v) && (2..@m).include?(count) # 　　 :holizontal なgroupについて、
-        #           (count <= @m) && # 値valu　をとり得るcellの数が2,,@m である
+        (grp.type == h_v) && (2..3).include?(count) # 　　 :holizontal なgroupについて、
+        #           (count <= 3) && # 値valu　をとり得るcellの数が2または3
         #           (count > 1) #      grp を集め
       end
     end
