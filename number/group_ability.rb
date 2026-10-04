@@ -25,11 +25,20 @@ module Number
     end
 
     def combination_of_ability_of_rest_is_less_or_equal(v_num)
+      each_combination_of_ability_of_rest_is_less_or_equal(v_num).to_a
+    end
+
+    # 条件に合う組み合わせを一つずつ返す。
+    def each_combination_of_ability_of_rest_is_less_or_equal(v_num)
+      return enum_for(__method__, v_num) unless block_given?
+
       # v_num個の数字の候補位置が、合計v_num個のセルに収まる組み合わせを探す。
       # 該当セルには、それらの数字だけを置ける。
-      @ability[1..].select { |abl| abl.rest <= v_num && abl.rest > 1 }
-              .combination(v_num)
-              .select { |abl_cmb| abl_cmb.inject([]) { |cells, abl| cells | abl.cell_ids }.size == v_num }
+      abilities = @ability[1..].select { |abl| abl.rest <= v_num && abl.rest > 1 }
+      abilities.combination(v_num) do |ability_combination|
+        cells = ability_combination.inject([]) { |cell_ids, ability| cell_ids | ability.cell_ids }
+        yield ability_combination if cells.size == v_num
+      end
     end
 
     def [](idx)

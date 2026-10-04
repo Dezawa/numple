@@ -174,16 +174,29 @@ RSpec.describe Number::Game, type: :model do
         group.ability = Number::GroupAbilities.new
         group.ability.ability = ary_groupability
         allow(group.ability)
-          .to receive(:combination_of_ability_of_rest_is_less_or_equal)
-          .and_return([combo2, combo22])
+          .to receive(:each_combination_of_ability_of_rest_is_less_or_equal)
+          .and_yield(combo2).and_yield(combo22)
         allow(game).to receive(:prison_done?).and_return(false)
       end
 
-      it '' do
-        # pp [:less_or_equal,group.ability.combination_of_ability_of_rest_is_less_or_equal(2)]
+      it 'returns the first matching candidate set' do
         expect(game.candidate_reserved_set(2, group))
-          .to eq [[[4, 5], [13, 14], combo2]]
+          .to eq [[4, 5], [13, 14], combo2]
       end
+    end
+
+    it 'applies every detected Reserve before returning' do
+      first_move = { group_id: 1, values: [1, 2], cells: [10, 11] }
+      second_move = { group_id: 2, values: [3, 4], cells: [20, 21] }
+      allow(game).to receive(:detect_reserv).with(2).and_return(first_move, second_move, nil)
+      allow(game).to receive(:apply_reserv)
+
+      result = game.reserv(2)
+
+      expect(game).to have_received(:apply_reserv).with(first_move, 2).ordered
+      expect(game).to have_received(:apply_reserv).with(second_move, 2).ordered
+      expect(game.count['reserv2']).to eq(2)
+      expect(result).to eq('reserv(2): cells:[10, 11], values:[1, 2]; cells:[20, 21], values:[3, 4]')
     end
     context :sum_of_cells_and_values do
       it 'combo2 の時' do

@@ -9,15 +9,19 @@ module Number
     # それらの cell にはn他の値は入れない ⇒ 削除対象
     # その数字は他のcellには入らない
     # 似た概念 座敷牢 の方に違いを詳説
-    # rubocop: disable Lint/UnreachableLoop
     def reserv(v_num)
       @call_count["reserv#{v_num}"] += 1
-      move = detect_reserv(v_num)
-      return '' unless move
+      moves = []
+      while (move = detect_reserv(v_num))
+        apply_reserv(move, v_num)
+        @count["reserv#{v_num}"] += 1
+        moves << move
+      end
 
-      apply_reserv(move, v_num)
-      @count["reserv#{v_num}"] += 1
-      "reserv(#{v_num}): cells:#{move[:cells]}, values:#{move[:values]}"
+      return '' if moves.empty?
+
+      details = moves.map { |move| "cells:#{move[:cells]}, values:#{move[:values]}" }
+      "reserv(#{v_num}): #{details.join('; ')}"
     end
 
     # 予約席の対象を検出する。盤面と処理済み記録は変更しない。
@@ -28,7 +32,7 @@ module Number
       # cell数が v_num 個であるものを得る
       # それらの cell ではそれらの値以外ははいらない
       @groups.each do |group|
-        candidate = candidate_reserved_set(v_num, group).first
+        candidate = candidate_reserved_set(v_num, group)
         next unless candidate
 
         values, reserved_cells, ability_combination = candidate
@@ -58,10 +62,14 @@ module Number
       # all_set.select do |values, reserved_cells, _abl_cmb|
       #   !prison_done?(v_num, reserved_cells) && values_to_rm(reserved_cells, values).size.positive?
       # end
-      group.ability.combination_of_ability_of_rest_is_less_or_equal(v_num).map do |abl_cmb|
+      group.ability.each_combination_of_ability_of_rest_is_less_or_equal(v_num) do |abl_cmb|
         values, reserved_cells = sum_of_cells_and_values(abl_cmb)
-        !prison_done?(v_num, reserved_cells) && values_to_rm(reserved_cells, values).size.positive? ? [values, reserved_cells, abl_cmb] : nil
-      end.compact
+        next if prison_done?(v_num, reserved_cells)
+        next unless values_to_rm(reserved_cells, values).size.positive?
+
+        return [values, reserved_cells, abl_cmb]
+      end
+      nil
     end
 
     # abilitys :: [ [grp_ability, grp_abirity], [], , ,]
