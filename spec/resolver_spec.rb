@@ -70,6 +70,37 @@ RSpec.describe Number::Game, type: :model do
     end
   end
 
+  describe 'Reserve detection and application' do
+    before do
+      game.structure
+      group = game.groups[0]
+      [1, 2].each do |value|
+        group.ability[value].cell_ids = [0, 1]
+        group.ability[value].rest = 2
+      end
+      game.cells[0].ability = [1, 2, 3]
+      game.cells[1].ability = [1, 2, 3]
+    end
+
+    it 'detects a multi-candidate Reserve without changing the board or done list' do
+      move = game.detect_reserv(2)
+
+      expect(move).to include(group_id: 0, values: [1, 2], cells: [0, 1])
+      expect(game.cells[0].ability).to include(3)
+      expect(game.prison_done[2]).to be_empty
+    end
+
+    it 'applies a detected Reserve by removing other candidates from its cells' do
+      move = game.detect_reserv(2)
+
+      game.apply_reserv(move, 2)
+
+      expect(game.cells[0].ability).to eq([1, 2])
+      expect(game.cells[1].ability).to eq([1, 2])
+      expect(game.prison_done[2]).to include([0, 1])
+    end
+  end
+
   describe :prison do
     let(:cell_abilities_for_prison) do
       # cell 10,11,12には1,2,3のみが有る。cell 13,14 には4,5のみが有る。

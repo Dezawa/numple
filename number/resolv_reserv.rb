@@ -12,25 +12,40 @@ module Number
     # rubocop: disable Lint/UnreachableLoop
     def reserv(v_num)
       @call_count["reserv#{v_num}"] += 1
+      move = detect_reserv(v_num)
+      return '' unless move
+
+      apply_reserv(move, v_num)
+      @count["reserv#{v_num}"] += 1
+      "reserv(#{v_num}): cells:#{move[:cells]}, values:#{move[:values]}"
+    end
+
+    # 予約席の対象を検出する。盤面と処理済み記録は変更しない。
+    def detect_reserv(v_num)
       # group において、可能性ある cell が v_num個以下の数字を探す
       # それらのcellに他の数字の可能性が有ってもよい。
       # それらの v_num個のcombinationのうち、
       # cell数が v_num 個であるものを得る
       # それらの cell ではそれらの値以外ははいらない
       @groups.each do |group|
-        candidate_reserved_set(v_num, group)
-          .each do |values, reserved_cells, _abl_cmb|
-          rm_value = values_to_rm(reserved_cells, values)
-          reserved_cells.each do |c|
-            msg = "reserve#{v_num} group #{group.g} cells#{reserved_cells} v=#{values}"
-            @cells[c].rm_ability(rm_value, msg)
-          end
-          @count["reserv#{v_num}"] += 1
-          prison_done[v_num] << reserved_cells
-          return "reserv(#{v_num}): cells:#{reserved_cells}, values:#{values}"
-        end
+        candidate = candidate_reserved_set(v_num, group).first
+        next unless candidate
+
+        values, reserved_cells, ability_combination = candidate
+        return { group_id: group.g, values: values, cells: reserved_cells,
+                 ability_combination: ability_combination }
       end
-      ''
+      nil
+    end
+
+    # 検出した予約席を適用し、対象セルから他の候補を削除する。
+    def apply_reserv(move, v_num)
+      rm_value = values_to_rm(move[:cells], move[:values])
+      move[:cells].each do |cell_id|
+        msg = "reserve#{v_num} group #{move[:group_id]} cells#{move[:cells]} v=#{move[:values]}"
+        @cells[cell_id].rm_ability(rm_value, msg)
+      end
+      prison_done[v_num] << move[:cells]
     end
     # rubocop: enable Lint/UnreachableLoop
 
