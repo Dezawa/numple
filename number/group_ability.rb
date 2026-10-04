@@ -25,13 +25,15 @@ module Number
     end
 
     def combination_of_ability_of_rest_is_less_or_equal(v_num)
-      each_combination_of_ability_of_rest_is_less_or_equal(v_num).to_a
+      combinations = []
+      each_combination_of_ability_of_rest_is_less_or_equal(v_num) do |ability_combination|
+        combinations << ability_combination
+      end
+      combinations
     end
 
     # 条件に合う組み合わせを一つずつ返す。
     def each_combination_of_ability_of_rest_is_less_or_equal(v_num)
-      return enum_for(__method__, v_num) unless block_given?
-
       # v_num個の数字の候補位置が、合計v_num個のセルに収まる組み合わせを探す。
       # 該当セルには、それらの数字だけを置ける。
       abilities = @ability[1..].select { |abl| abl.rest <= v_num && abl.rest > 1 }
