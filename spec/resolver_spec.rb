@@ -15,6 +15,36 @@ RSpec.describe Number::Game, type: :model do
   end
   let(:group_aiblilities) { Number::GroupAbilities.new }
 
+  describe 'single detection and application' do
+    before { game.structure }
+
+    it 'detects PrisonSingle without changing the board, then applies it separately' do
+      cell = game.cells[0]
+      cell.ability = [5]
+
+      move = game.detect_prison_single
+
+      expect(move).to eq(technique: :prison_single, cell_id: 0, value: 5)
+      expect(cell.v).to be_nil
+      expect(game.apply_single(move)).to be_truthy
+      expect(cell.v).to eq(5)
+    end
+
+    it 'detects ReserveSingle without changing the board, then applies it separately' do
+      group = game.groups[0]
+      group.ability[5].cell_ids = [0]
+      group.ability[5].rest = 1
+
+      move = game.detect_reserve_single
+
+      expect(move).to eq(technique: :reserve_single, cell_id: 0, value: 5, group_id: 0)
+      expect(game.cells[0].v).to be_nil
+      expect(game.apply_single(move)).to be_truthy
+      expect(game.cells[0].v).to eq(5)
+      expect(game.count[:Group_ability_is_rest_one]).to eq(1)
+    end
+  end
+
   describe :prison do
     let(:cell_abilities_for_prison) do
       # cell 10,11,12には1,2,3のみが有る。cell 13,14 には4,5のみが有る。
