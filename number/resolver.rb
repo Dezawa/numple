@@ -3,6 +3,8 @@
 require_relative './resolv_reserv'
 require_relative './resolv_curb'
 require_relative './resolv_prison'
+require_relative './resolv_prison_single'
+require_relative './resolv_reserve_single'
 require_relative './resolv_trio_on_co_group'
 require_relative './resolv_cross'
 require_relative './resolv_xy_wing'
@@ -12,6 +14,8 @@ module Number
     include ResolvReserv
     include ResolvCurb
     include ResolvPrison
+    include ResolvPrisonSingle
+    include ResolvReserveSingle
     include ResolvTrioOnCoGroup
     include ResolvCross
     include ResolvXyWing
@@ -98,51 +102,22 @@ module Number
       cells = []
       loop do
         # 旧 rest_one と同じく、セル候補が一つのものを先に確定する。
-        move = detect_prison_single || detect_reserve_single
-        break unless move
+        move = detect_prison_single
+        if move
+          break unless apply_prison_single(move)
 
-        cells << move[:cell_id] if apply_single(move)
+          cells << move[:cell_id]
+          next
+        end
+
+        move = detect_reserve_single
+        break unless move
+        break unless apply_reserve_single(move)
+
+        cells << move[:cell_id]
       end
 
       cells.empty? ? '' : " rest_one cells=#{cells}"
-    end
-
-    # 対象セルに残る候補が一つだけなら PrisonSingle を返す。
-    # 戻り値は適用に必要な情報で、検出中に盤面は変更しない。
-    def detect_prison_single
-      cell = @cells.find { |candidate| !candidate.v && candidate.valurest == 1 }
-      { technique: :prison_single, cell_id: cell.c, value: cell.ability.first } if cell
-    end
-
-    # グループ内で候補位置が一つだけの数字があれば ReserveSingle を返す。
-    def detect_reserve_single
-      @groups.each do |group|
-        ability = group.ability.fixed_by_rest_one.find do |candidate|
-          cell = @cells[candidate.cell_ids.first]
-          cell && !cell.v
-        end
-        return { technique: :reserve_single, cell_id: ability.cell_ids.first,
-                 value: ability.v, group_id: group.g } if ability
-      end
-      nil
-    end
-
-    # 検出結果を盤面に適用し、既存の使用回数カウンターを更新する。
-    def apply_single(move)
-      cell = @cells[move[:cell_id]]
-      return false unless cell.set(move[:value], single_message(move))
-
-      if move[:technique] == :reserve_single
-        @count[:Group_ability_is_rest_one] += 1
-      end
-      true
-    end
-
-    def single_message(move)
-      case move[:technique]
-      when :prison_single then 'PrisonSingle'
-      when :reserve_single then "grp(#{move[:group_id]}).ReserveSingle"
-      end
     end
 
     def prison_done
