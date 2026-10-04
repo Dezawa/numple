@@ -27,18 +27,25 @@ module Number
     ###########################################################
     def prison(v_num)
       @call_count["prison#{v_num}"] += 1
-      # 残り可能性の数　2,,v_num なcellを拾い上げる
-      # 同じ「残り可能性」なcellの組み合わせを探し、v_numあればhit
-      ret = cells_remaining_possibilities_2_to_v_num(v_num)
+      ret = detect_prison(v_num)
       return '' if ret.empty?
 
-      # このcellを含むgrpの 他のcellにあるｖの可能性を消す
-      rm_ability_of_other_cells(ret, v_num)
+      apply_prison(ret, v_num)
 
       ret.uniq.map { |cc, values| "cels#{cc},vlues#{values}" }.join('   ')
       @count["prison#{v_num}"] += ret.uniq.size
 
       "prison(#{v_num}): [cells, values] #{ret}"
+    end
+
+    # 座敷牢の対象を検出する。盤面と処理済み記録は変更しない。
+    def detect_prison(v_num)
+      cells_remaining_possibilities_2_to_v_num(v_num)
+    end
+
+    # 検出した組み合わせを適用し、同じ対象の再処理を記録する。
+    def apply_prison(ret, v_num)
+      rm_ability_of_other_cells(ret, v_num)
     end
 
     # 残り可能性の数　2,,v_num なcellを拾い上げる
@@ -52,16 +59,15 @@ module Number
       #     [cc, values]
       #   end
       # end
-      ret = 
-        @groups.map do |grp|
-        prisonable_cells(grp, v_num)
-          .reject { |cc, _values| prison_done[v_num].include?(cc) }
-          .map do |cc, values|
-          prison_done[v_num] << cc
+      done = prison_done[v_num].dup
+      @groups.flat_map do |grp|
+        prisonable_cells(grp, v_num).filter_map do |cc, values|
+          next if done.include?(cc)
+
+          done << cc
           [cc, values]
         end
       end
-      ret = ret.delete_if(&:empty?).flatten(1)
     end
 
     # このcellを含むgrpの 他のcellにあるｖの可能性を消す

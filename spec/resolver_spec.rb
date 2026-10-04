@@ -45,6 +45,31 @@ RSpec.describe Number::Game, type: :model do
     end
   end
 
+  describe 'Prison detection and application' do
+    before do
+      game.structure
+      game.cells[0].ability = [1, 2]
+      game.cells[1].ability = [1, 2]
+    end
+
+    it 'detects a multi-candidate Prison without changing the board or done list' do
+      move = game.detect_prison(2)
+
+      expect(move).to include([[0, 1], [1, 2]])
+      expect(game.cells[2].ability).to include(1, 2)
+      expect(game.prison_done[2]).to be_empty
+    end
+
+    it 'applies a detected Prison by removing its candidates from peer cells' do
+      move = game.detect_prison(2)
+
+      game.apply_prison(move, 2)
+
+      expect(game.cells[2].ability).not_to include(1, 2)
+      expect(game.prison_done[2]).to include([0, 1])
+    end
+  end
+
   describe :prison do
     let(:cell_abilities_for_prison) do
       # cell 10,11,12には1,2,3のみが有る。cell 13,14 には4,5のみが有る。
