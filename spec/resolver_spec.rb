@@ -24,9 +24,9 @@ RSpec.describe Number::Game, type: :model do
 
       move = game.detect_prison_single
 
-      expect(move).to eq(cell_id: 0, value: 5)
+      expect(move).to eq(technique: :prison_single, cell_id: 0, value: 5)
       expect(cell.v).to be_nil
-      expect(game.apply_prison_single(move)).to be_truthy
+      game.apply_prison_single(move)
       expect(cell.v).to eq(5)
     end
 
@@ -37,9 +37,9 @@ RSpec.describe Number::Game, type: :model do
 
       move = game.detect_reserve_single
 
-      expect(move).to eq(cell_id: 0, value: 5, group_id: 0)
+      expect(move).to eq(technique: :reserve_single, cell_id: 0, value: 5, group_id: 0)
       expect(game.cells[0].v).to be_nil
-      expect(game.apply_reserve_single(move)).to be_truthy
+      game.apply_reserve_single(move)
       expect(game.cells[0].v).to eq(5)
       expect(game.count[:Group_ability_is_rest_one]).to eq(1)
     end

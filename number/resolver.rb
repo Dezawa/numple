@@ -102,22 +102,24 @@ module Number
       cells = []
       loop do
         # 旧 rest_one と同じく、セル候補が一つのものを先に確定する。
-        move = detect_prison_single
-        if move
-          break unless apply_prison_single(move)
-
-          cells << move[:cell_id]
-          next
-        end
-
-        move = detect_reserve_single
+        move = detect_prison_single || detect_reserve_single
         break unless move
-        break unless apply_reserve_single(move)
 
+        apply_single_move(move)
         cells << move[:cell_id]
       end
 
       cells.empty? ? '' : " rest_one cells=#{cells}"
+    end
+
+    # 検出結果に対応するSingle技を適用する。
+    def apply_single_move(move)
+      case move[:technique]
+      when :prison_single
+        apply_prison_single(move)
+      when :reserve_single
+        apply_reserve_single(move)
+      end
     end
 
     def prison_done
