@@ -27,46 +27,40 @@ module Number
     ###########################################################
     def prison(v_num)
       @call_count["prison#{v_num}"] += 1
-      ret = detect_prison(v_num)
-      return '' if ret.empty?
+      moves = []
+      while (move = detect_prison(v_num))
+        apply_prison(move, v_num)
+        @count["prison#{v_num}"] += 1
+        moves << move
+      end
+      return '' if moves.empty?
 
-      apply_prison(ret, v_num)
-
-      ret.uniq.map { |cc, values| "cels#{cc},vlues#{values}" }.join('   ')
-      @count["prison#{v_num}"] += ret.uniq.size
-
-      "prison(#{v_num}): [cells, values] #{ret}"
+      "prison(#{v_num}): [cells, values] #{moves}"
     end
 
-    # 座敷牢の対象を検出する。盤面と処理済み記録は変更しない。
+    # 座敷牢の対象を一つ検出する。盤面と処理済み記録は変更しない。
     def detect_prison(v_num)
-      cells_remaining_possibilities_2_to_v_num(v_num)
+      @groups.each do |group|
+        each_prisonable_cells(group, v_num) do |cell_ids, values|
+          next if prison_done[v_num].include?(cell_ids)
+
+          return [cell_ids, values]
+        end
+      end
+      nil
     end
 
     # 検出した組み合わせを適用し、同じ対象の再処理を記録する。
-    def apply_prison(ret, v_num)
-      rm_ability_of_other_cells(ret, v_num)
+    def apply_prison(move, v_num)
+      rm_ability_of_other_cells([move], v_num)
     end
 
-    # 残り可能性の数　2,,v_num なcellを拾い上げる
-    def cells_remaining_possibilities_2_to_v_num(v_num)
-      # ret = []
-      # @groups.each do |grp|
-      #   ret << prisonable_cells(grp, v_num)
-      #          .reject { |cc, _values| prison_done[v_num].include?(cc) }
-      #          .map do |cc, values|
-      #     prison_done[v_num] << cc
-      #     [cc, values]
-      #   end
-      # end
-      done = prison_done[v_num].dup
-      @groups.flat_map do |grp|
-        prisonable_cells(grp, v_num).filter_map do |cc, values|
-          next if done.include?(cc)
-
-          done << cc
-          [cc, values]
-        end
+    # 座敷牢の候補組み合わせを一つずつ列挙する。
+    def each_prisonable_cells(group, v_num)
+      able_cells = group.cell_ids_avility_le_than(v_num)
+      able_cells.combination(v_num) do |cell_ids|
+        values = cell_ids.flat_map { |cell_id| cells[cell_id].ability }.uniq
+        yield cell_ids, values if values.size == v_num
       end
     end
 
