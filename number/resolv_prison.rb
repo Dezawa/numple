@@ -42,7 +42,7 @@ module Number
     def detect_prison(v_num)
       @groups.each do |group|
         each_prisonable_cells(group, v_num) do |cell_ids, values|
-          next if prison_done[v_num].include?(cell_ids)
+          next if prison_done?(v_num, cell_ids)
 
           return [cell_ids, values]
         end
