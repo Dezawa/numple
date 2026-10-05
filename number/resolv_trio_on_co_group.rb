@@ -3,10 +3,24 @@
 module Number
   # 解法
   module ResolvTrioOnCoGroup
+    # prison(2,3)と等価?
     def trio_on_co_group
       @call_count["trio_on_co_group"] += 1
-      # return # prison(2,3)と等価?
-      ret = ''
+      moves = []
+      while (move = detect_trio_on_co_group)
+        apply_trio_on_co_group(move)
+        @count["trio_on_co_group"] += 1
+        moves << move
+      end
+      return '' if moves.empty?
+
+      moves.map do |move|
+        "## trio_on_co_group:group #{move[:group_id]} V=#{move[:value]} cells=#{move[:cells].join(',')}"
+      end.join('; ')
+    end
+
+    # TrioOnCoGroupの対象を検出する。検出中に盤面は変更しない。
+    def detect_trio_on_co_group
       @groups.each do |grp|
         (1..Number::Game::SIZE).each do |v|
           cnt = grp.ability[v].rest
@@ -17,15 +31,21 @@ module Number
           # これと同じcellを全て含むグループを探す
           cogroup(w).each do |g|
             grp0 = @groups[g]
-            # group g0 の w 以外のcellから 値Vの可能性をなくす
-            if grp0.rm_ability(v, w, "## trio_on_co_group:group #{grp.g} V=#{v} cells=#{w.join(',')}")
-              @count["trio_on_co_group"] += 1
-              return "## trio_on_co_group:group #{grp.g} V=#{v} cells=#{w.join(',')}"
-            end
+            # 適用時に実際に候補を削除できる対象だけ返す。
+            next unless (grp0.ability[v].cell_ids - w).any?
+
+            return { group_id: grp.g, target_group_id: g, value: v, cells: w.dup }
           end
         end
       end
-      ret
+      nil
+    end
+
+    # 検出したTrioOnCoGroupを適用し、共有セル以外から候補を削除する。
+    def apply_trio_on_co_group(move)
+      msg = "## trio_on_co_group:group #{move[:group_id]} V=#{move[:value]} cells=#{move[:cells].join(',')}"
+      removed = @groups[move[:target_group_id]].rm_ability(move[:value], move[:cells], msg)
+      raise 'detected TrioOnCoGroup could not be applied' unless removed
     end
   end
 end
