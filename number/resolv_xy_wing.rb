@@ -5,13 +5,37 @@ module Number
   module ResolvXyWing
     def xy_wing
       @call_count["xy_wing"] += 1
-      candidate_cells_of_trio.each do |wing_cells|
+      moves = []
+      while (move = detect_xy_wing)
+        apply_xy_wing(move)
         @count['xy_wing'] += 1
-        target_val = (wing_cells.first.ability & wing_cells.last.ability).first
-        co_cells_of_pair_grp_of(wing_cells).each do |co_cells|
-          co_cells.each{|cell| cell.rm_ability(target_val)}
-        end
+        moves << move
       end
+      moves.empty? ? '' : 'xy_wing'
+    end
+
+    # XY-Wingの対象を検出する。検出中に盤面は変更しない。
+    def detect_xy_wing
+      candidate_cells_of_trio.each do |wing_cells|
+        target_val = (wing_cells.first.ability & wing_cells.last.ability).first
+        target_cell_ids = co_cells_of_pair_grp_of(wing_cells).flatten.map(&:c).uniq
+        target_cell_ids.select! { |cell_id| @cells[cell_id].ability.include?(target_val) }
+        next if target_cell_ids.empty?
+
+        return { wing_cell_ids: wing_cells.map(&:c), value: target_val,
+                 target_cell_ids: target_cell_ids }
+      end
+      nil
+    end
+
+    # 検出したXY-Wingを適用し、共通候補を対象セルから削除する。
+    def apply_xy_wing(move)
+      applied = false
+      move[:target_cell_ids].each do |cell_id|
+        removed = @cells[cell_id].rm_ability(move[:value])
+        applied = true if removed
+      end
+      raise 'detected XY-Wing could not be applied' unless applied
     end
 
     # 対角にあるpair_cellsの3つのgroup同士が重なる部分のcell

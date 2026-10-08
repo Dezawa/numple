@@ -114,5 +114,43 @@ RSpec.describe Number::Game, type: :model do
       expect(game.not_on_the_same_group([cell1, cell3, cell4])).to eq false
     end
   end
+
+  describe 'XY-Wing detection and application' do
+    let(:xy_game) { Number::Game.new }
+
+    before do
+      xy_game.structure
+      xy_game.cells[0].ability = [1, 2]
+      xy_game.cells[4].ability = [1, 3]
+      xy_game.cells[36].ability = [2, 3]
+      xy_game.cells[40].ability = [3, 4, 5]
+    end
+
+    it 'detects a move without changing the board' do
+      original_abilities = xy_game.cells.map { |cell| cell.ability.dup }
+
+      move = xy_game.detect_xy_wing
+
+      expect(move).to eq(wing_cell_ids: [4, 36], value: 3, target_cell_ids: [40])
+      expect(xy_game.cells.map(&:ability)).to eq(original_abilities)
+    end
+
+    it 'applies the detected move to the target cell' do
+      move = xy_game.detect_xy_wing
+
+      xy_game.apply_xy_wing(move)
+
+      expect(xy_game.cells[40].ability).to eq([4, 5])
+      expect(xy_game.cells[4].ability).to include(3)
+      expect(xy_game.cells[36].ability).to include(3)
+    end
+
+    it 'keeps xy_wing as the detect-and-apply entry point' do
+      expect(xy_game.xy_wing).to eq('xy_wing')
+      expect(xy_game.cells[40].ability).to eq([4, 5])
+      expect(xy_game.count['xy_wing']).to eq(1)
+      expect(xy_game.call_count['xy_wing']).to eq(1)
+    end
+  end
 end
 # rubocop: enable Metrics/BlockLength
