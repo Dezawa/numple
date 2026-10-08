@@ -24,7 +24,7 @@ RSpec.describe Number::Game, type: :model do
       move = game.detect_cross_teiin
 
       expect(move).to include(value: 5, source_group_ids: [0, 3],
-                              target_group_ids: [10, 13], except_cells: [1, 4, 28, 31])
+                              target_group_ids: [10, 13], pattern_cells: [1, 4, 28, 31])
       expect(game.cells.map(&:ability)).to eq(original_abilities)
     end
 

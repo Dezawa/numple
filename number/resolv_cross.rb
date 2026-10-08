@@ -57,12 +57,12 @@ module Number
               rm_grps = cmb_grp.map { |grp| grp[3] }.flatten.uniq
               next unless rm_grps.size == g_nums
 
-              except_cells = cmb_grp.flat_map { |group| group[2] }.uniq
+              pattern_cells = cmb_grp.flat_map { |group| group[2] }.uniq
               move = {
                 value: v,
                 source_group_ids: cmb_grp.map { |group| group[1].g },
                 target_group_ids: rm_grps,
-                except_cells: except_cells
+                pattern_cells: pattern_cells
               }
               # 適用済みの元グループの組み合わせは再検出しない。
               next if cross_done?(move)
@@ -70,7 +70,7 @@ module Number
               # (5) このco_groupsから値vの可能性を削除する。except cells
               # pp [v, cmb_grp[3]]
               next unless rm_grps.any? do |group_id|
-                (@groups[group_id].ability[v].cell_ids - except_cells).any?
+                (@groups[group_id].ability[v].cell_ids - pattern_cells).any?
               end
 
               # return true
@@ -85,10 +85,10 @@ module Number
     # 検出したcross_teiinを適用し、対象グループから候補を削除する。
     def apply_cross_teiin(move)
       applied = false
-      # (5) 検出時に集めた共通グループから、except_cells以外の候補を削除する。
+      # (5) 検出時に集めた共通グループから、pattern_cells以外の候補を削除する。
       move[:target_group_ids].each do |group_id|
         msg = "cross_teiin v=#{move[:value]}, grps=#{move[:source_group_ids].join(',')}"
-        removed = @groups[group_id].rm_ability(move[:value], move[:except_cells], msg)
+        removed = @groups[group_id].rm_ability(move[:value], move[:pattern_cells], msg)
         next unless removed
 
         option[:gsw] = true
